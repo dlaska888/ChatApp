@@ -1,0 +1,59 @@
+services:
+  webservice:
+    image: webservice
+    build:
+      context: .
+      dockerfile: WebService/Dockerfile
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://+:80;https://+:443"
+      ASPNETCORE_Kestrel__Certificates__Default__Password: password
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
+    volumes:
+      - ~/.aspnet/https:/https:ro
+    networks:
+      api:
+  chatservice:
+    image: chatservice
+    build:
+      context: .
+      dockerfile: ChatService/Dockerfile
+  usermappingservice:
+    image: usermappingservice
+    build:
+      context: .
+      dockerfile: UserMappingService/Dockerfile
+  notificationservice:
+    image: notificationservice
+    build:
+      context: .
+      dockerfile: NotificationService/Dockerfile
+  mongo:
+    image: mongo:7.0.1-rc0
+    container_name: mongo
+    ports:
+      - '27017:27017'
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_ROOT_USERNAME: root
+    volumes:
+      - mongodata:/data/db
+    networks:
+      api:
+
+volumes:
+  mongodata:
+
+networks:
+  api:
+
+
+  presenceservice:
+    image: presenceservice
+    build:
+      context: .
+      dockerfile: PresenceService/Dockerfile
