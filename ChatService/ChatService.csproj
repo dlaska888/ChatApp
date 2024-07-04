@@ -13,4 +13,17 @@
       </Content>
     </ItemGroup>
 
+    <ItemGroup>
+      <None Include="wwwroot\client.html" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Shared\Shared.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.6" />
+      <PackageReference Include="MongoDB.Driver" Version="2.27.0" />
+    </ItemGroup>
+
 </Project>

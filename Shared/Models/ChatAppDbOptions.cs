@@ -1,6 +1,6 @@
-﻿namespace WebService.Models;
+﻿namespace Shared.Models;
 
-public class ChatAppDbSettings
+public class ChatAppDbOptions
 {
     public string ConnectionString { get; set; } = null!;
     public string DatabaseName { get; set; } = null!;

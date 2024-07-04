@@ -6,10 +6,10 @@ EXPOSE 443
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 
 WORKDIR /src
-COPY ["WebService.csproj", "WebService/"]
+COPY ["WebService/WebService.csproj", "WebService/"]
 RUN dotnet restore "WebService/WebService.csproj"
-WORKDIR "/src/WebService"
 COPY . .
+WORKDIR "/src/WebService"
 RUN dotnet build "WebService.csproj" -c Release -o /app/build
 
 FROM build AS publish
