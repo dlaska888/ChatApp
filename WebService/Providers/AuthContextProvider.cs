@@ -6,11 +6,11 @@ namespace WebService.Providers;
 public class AuthContextProvider(IHttpContextAccessor httpContextAccessor) : IAuthContextProvider
 {
     public string? GetUserId() =>
-        httpContextAccessor.HttpContext?.User.FindFirst(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
     public string? GetUserEmail() =>
-        httpContextAccessor.HttpContext?.User.FindFirst(c => c.Type == ClaimTypes.Email)?.Value;
+        httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Email)?.Value;
 
     public string? GetUserName() =>
-        httpContextAccessor.HttpContext?.User.FindFirst(c => c.Type == ClaimTypes.Name)?.Value;
+        httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.Name)?.Value;
 }

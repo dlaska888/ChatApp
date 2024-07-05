@@ -13,8 +13,17 @@ using WebService.Middlewares;
 using WebService.Models.Entities;
 using WebService.Providers;
 using WebService.Providers.Interfaces;
+using WebService.Services;
+using WebService.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
+
+#region Services
+
+builder.Services.AddScoped<IMessageService, MessageService>();
+builder.Services.AddScoped<IGroupService, GroupService>();
+
+#endregion
 
 #region Helpers
 

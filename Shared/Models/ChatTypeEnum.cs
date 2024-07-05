@@ -1,6 +1,6 @@
 ﻿namespace Shared.Models;
 
-public enum ChannelTypeEnum
+public enum ChatTypeEnum
 {
     Private,
     Group

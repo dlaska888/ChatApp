@@ -25,7 +25,7 @@ public class ChatHub(ILogger<ChatHub> logger, IMessageService messageService) : 
         }
     }
 
-    public async Task SendMessage(string receiverId, ChannelTypeEnum channelType, string message)
+    public async Task SendMessage(string receiverId, ChatTypeEnum chatTypeEnum, string message)
     {
         var senderId = Context.User!.FindFirst(ClaimTypes.NameIdentifier)!.Value;
         
