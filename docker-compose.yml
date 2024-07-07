@@ -1,9 +1,9 @@
 services:
-  webservice:
-    image: webservice
+  chatapp:
+    image: chatapp
     build:
       context: .
-      dockerfile: WebService/Dockerfile
+      dockerfile: ChatApp/Dockerfile
     ports:
       - '80:80'
       - '443:443'
@@ -16,38 +16,6 @@ services:
       - ~/.aspnet/https:/https:ro
     networks:
       db-network:
-  chatservice:
-    image: chatservice
-    build:
-      context: .
-      dockerfile: ChatService/Dockerfile
-    ports:
-      - '8081:80'
-      - '8082:443'
-    environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_URLS: "http://+:80;https://+:443"
-      ASPNETCORE_Kestrel__Certificates__Default__Password: password
-      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
-    volumes:
-      - ~/.aspnet/https:/https:ro
-    networks:
-        db-network:
-  usermappingservice:
-    image: usermappingservice
-    build:
-      context: .
-      dockerfile: UserMappingService/Dockerfile
-  notificationservice:
-    image: notificationservice
-    build:
-      context: .
-      dockerfile: NotificationService/Dockerfile
-  presenceservice:
-    image: presenceservice
-    build:
-      context: .
-      dockerfile: PresenceService/Dockerfile
   mongo:
     image: mongo:7.0.1-rc0
     container_name: mongo
