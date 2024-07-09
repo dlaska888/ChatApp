@@ -4,9 +4,9 @@ using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Shared.Models;
 using WebService.Exceptions;
 using WebService.Helpers.Interfaces;
+using WebService.Models;
 using WebService.Models.Dtos;
 using WebService.Models.Entities;
 

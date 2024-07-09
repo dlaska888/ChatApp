@@ -1,18 +1,14 @@
 ﻿using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
+using WebService.Attributes;
 
-namespace WebService.Models.Entities
+namespace WebService.Models.Entities;
+
+[BsonCollection("groups")]
+public class Group : Document
 {
-    public class Group
-    {
-        [BsonId]
-        [BsonRepresentation(BsonType.ObjectId)]
-        public ObjectId Id { get; set; }
+    public string Name { get; set; } = null!;
 
-        public string Name { get; set; } = null!;
+    public string Description { get; set; } = null!;
 
-        public string Description { get; set; } = null!;
-
-        public List<ObjectId> UserIds { get; set; } = new();
-    }
+    public List<ObjectId> UserIds { get; set; } = new();
 }

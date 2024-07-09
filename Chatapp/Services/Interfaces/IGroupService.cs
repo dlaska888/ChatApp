@@ -6,9 +6,9 @@ namespace WebService.Services.Interfaces;
 public interface IGroupService
 {
     Task<Group> CreateGroupAsync(Group group);
-    Task<Group> GetGroupByIdAsync(ObjectId groupId);
-    Task<bool> UpdateGroupAsync(ObjectId groupId, Group updatedGroup);
-    Task<bool> DeleteGroupAsync(ObjectId groupId);
-    Task<bool> AddUserToGroupAsync(ObjectId userId, ObjectId groupId);
-    Task<bool> RemoveUserFromGroupAsync(ObjectId userId, ObjectId groupId);
+    Task<Group> GetGroupByIdAsync(string groupId);
+    Task UpdateGroupAsync(string groupId, Group updatedGroup);
+    Task DeleteGroupAsync(string groupId);
+    Task<bool> AddUserToGroupAsync(string userId, string groupId);
+    Task<bool> RemoveUserFromGroupAsync(string userId, string groupId);
 }

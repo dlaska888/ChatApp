@@ -8,6 +8,8 @@
             border: thick solid #808080;
             padding: 20px;
             margin: 20px;
+            position: relative;
+            overflow: hidden;
         }
 
         .sidebar {
@@ -20,8 +22,42 @@
             height: 100vh;
         }
 
-        .chat {
+        .chat-container {
             margin-left: 240px;
+            height: calc(100vh - 160px);
+            overflow-y: auto;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat {
+            display: none;
+            flex-grow: 1;
+        }
+
+        .active-chat {
+            display: block;
+        }
+
+        .input-area {
+            margin-left: 240px;
+            position: absolute;
+            bottom: 20px;
+            width: calc(100% - 280px);
+            display: flex;
+        }
+
+        .input-area input[type="text"] {
+            flex-grow: 1;
+            margin-right: 10px;
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        .input-area input[type="button"] {
+            padding: 10px;
+            font-size: 16px;
         }
 
         .login-modal {
@@ -45,6 +81,10 @@
             border: 1px solid #888;
             width: 80%;
         }
+
+        .selected {
+            background-color: #D3D3D3; /* Highlight the selected user */
+        }
     </style>
 </head>
 <body>
@@ -63,11 +103,13 @@
     <h3>Connections</h3>
     <ul id="connections"></ul>
 </div>
-<div class="container chat">
-    <input type="text" id="message"/>
-    <input type="button" id="sendmessage" value="Send"/>
-    <input type="hidden" id="displayname"/>
-    <ul id="discussion"></ul>
+<div class="container">
+    <div id="chats" class="chat-container"></div>
+    <div class="input-area">
+        <input type="text" id="message"/>
+        <input type="button" id="sendmessage" value="Send"/>
+        <input type="hidden" id="displayname"/>
+    </div>
 </div>
 <!-- Reference the SignalR library -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/5.0.10/signalr.min.js"></script>
@@ -81,6 +123,9 @@
 
         let token = localStorage.getItem('token');
         let refreshToken = localStorage.getItem('refreshToken');
+        let recipientId = null; // Store the recipient's ID for private messages
+        let myId = null; // Store the user's own ID for marking "saved messages"
+        const chats = {}; // Store chat elements for each user
 
         const loginModal = document.getElementById('loginModal');
         const loginButton = document.getElementById('loginButton');
@@ -96,30 +141,15 @@
 
             if (response.ok) {
                 const data = await response.json();
-                token = data.token;
+                token = data.accessToken;
                 refreshToken = data.refreshToken;
+                myId = data.userId; // Save the user's own ID
                 localStorage.setItem('token', token);
                 localStorage.setItem('refreshToken', refreshToken);
                 loginModal.style.display = "none";
                 startSignalRConnection();
             } else {
                 alert('Authentication failed, please try again.');
-            }
-        }
-
-        async function refreshTokenFunc() {
-            const response = await fetch('https://localhost/auth/refresh', {
-                method: 'POST',
-                body: refreshToken,
-            });
-            if (response.ok) {
-                const data = await response.json();
-                token = data.token;
-                localStorage.setItem('token', token);
-            } else {
-                localStorage.removeItem('token');
-                localStorage.removeItem('refreshToken');
-                loginModal.style.display = "block";
             }
         }
 
@@ -145,58 +175,102 @@
                 .build();
 
             connection.onclose(async () => {
-                await refreshTokenFunc();
                 await connection.start();
             });
 
             // Create a function that the hub can call to broadcast messages
-            connection.on("receiveMessage", (name, message) => {
-                // HTML encode display name and message
-                const encodedName = document.createElement('div');
-                encodedName.innerText = name;
-                const encodedMsg = document.createElement('div');
-                encodedMsg.innerText = message;
-
-                // Add the message to the page
-                const li = document.createElement('li');
-                li.innerHTML = `<strong>${encodedName.innerHTML}</strong>:&nbsp;&nbsp;${encodedMsg.innerHTML}`;
-                document.getElementById('discussion').appendChild(li);
+            connection.on("receiveMessage", (senderId, message) => {
+                const chat = chats[senderId] || createChatContainer(senderId);
+                addMessageToChat(chat, senderId, message);
             });
 
-            connection.on("updateConnections", (connections) => {
+            connection.on("updateConnectedUsers", (connections) => {
+                updateConnectedUsers(connections);
+            });
+
+            async function fetchConnectedUsers() {
+                try {
+                    const users = await connection.invoke("GetConnectedUsers");
+                    updateConnectedUsers(users);
+                } catch (err) {
+                    console.error(err.toString());
+                }
+            }
+
+            function updateConnectedUsers(connections) {
                 const connectionsList = document.getElementById('connections');
                 connectionsList.innerHTML = '';
                 connections.forEach(conn => {
                     const li = document.createElement('li');
-                    li.innerText = conn;
+                    li.innerText = conn === myId ? "Saved Messages" : conn;
+                    li.addEventListener('click', () => {
+                        recipientId = conn;
+                        // Highlight the selected user
+                        document.querySelectorAll('#connections li').forEach(item => {
+                            item.classList.remove('selected');
+                        });
+                        li.classList.add('selected');
+                        // Show the selected chat
+                        showChat(conn);
+                    });
                     connectionsList.appendChild(li);
                 });
-            });
+            }
+
+            function createChatContainer(userId) {
+                const chatContainer = document.createElement('div');
+                chatContainer.id = `chat-${userId}`;
+                chatContainer.classList.add('chat');
+                document.getElementById('chats').appendChild(chatContainer);
+                chats[userId] = chatContainer;
+                return chatContainer;
+            }
+
+            function showChat(userId) {
+                Object.values(chats).forEach(chat => {
+                    chat.classList.remove('active-chat');
+                });
+                const chat = chats[userId] || createChatContainer(userId);
+                chat.classList.add('active-chat');
+            }
+
+            function addMessageToChat(chat, senderId, message) {
+                const encodedMsg = document.createElement('div');
+                encodedMsg.innerText = message;
+
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${senderId === myId ? 'Me' : senderId}</strong>:&nbsp;&nbsp;${encodedMsg.innerHTML}`;
+                chat.appendChild(li);
+            }
 
             // Set initial focus to message input box
             document.getElementById('message').focus();
 
-            // Start the connection
+            // Start the connection and fetch the connected users
             connection.start().then(() => {
+                fetchConnectedUsers();
                 document.getElementById('sendmessage').addEventListener('click', () => {
-                    // Call the Send method on the hub
-                    connection.invoke("SendMessage", "6685cf22163369e8250d1015", ChannelTypeEnum.Private, document.getElementById('message').value)
-                        .catch(async (err) => {
-                            console.error(err.toString());
-                            if (err.statusCode === 401) {
-                                await refreshTokenFunc();
-                            }
-                        });
+                    if (recipientId) {
+                        // Call the Send method on the hub with the selected recipient
+                        connection.invoke("SendMessage", recipientId, ChannelTypeEnum.Private, document.getElementById('message').value)
+                            .catch(async (err) => {
+                                console.error(err.toString());
+                            });
 
-                    // Clear text box and reset focus for next comment
-                    document.getElementById('message').value = '';
-                    document.getElementById('message').focus();
+                        // Clear text box and reset focus for next comment
+                        const chat = chats[recipientId] || createChatContainer(recipientId);
+                        addMessageToChat(chat, myId, document.getElementById('message').value);
+                        document.getElementById('message').value = '';
+                        document.getElementById('message').focus();
+                    } else {
+                        alert('Please select a user to chat with.');
+                    }
                 });
             }).catch(async (err) => {
                 console.error(err.toString());
                 if (err.statusCode === 401) {
-                    await refreshTokenFunc();
-                    await connection.start();
+                    // Show the login modal if unauthorized
+                    loginModal.style.display = "block";
                 }
             });
         }

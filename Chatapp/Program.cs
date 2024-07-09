@@ -5,15 +5,19 @@ using MongoDB.Bson;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi.Models;
-using Shared.Models;
+using MongoDB.Driver;
 using WebService.Filters;
 using WebService.Helpers;
 using WebService.Helpers.Interfaces;
 using WebService.Hubs;
 using WebService.Middlewares;
+using WebService.Models;
 using WebService.Models.Entities;
+using WebService.Models.Entities.Interfaces;
 using WebService.Providers;
 using WebService.Providers.Interfaces;
+using WebService.Repositories;
+using WebService.Repositories.Interfaces;
 using WebService.Services;
 using WebService.Services.Interfaces;
 
@@ -21,7 +25,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 #region Services
 
-builder.Services.AddScoped<IMessageService, MessageService>();
+builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IGroupService, GroupService>();
 
 #endregion
@@ -44,6 +48,12 @@ builder.Services.AddScoped<ErrorHandlingMiddleWare>();
 var appDbSettingSection = builder.Configuration.GetSection("ChatAppDbOptions");
 var appDbSettings = appDbSettingSection.Get<ChatAppDbOptions>();
 builder.Services.Configure<ChatAppDbOptions>(appDbSettingSection);
+
+builder.Services.AddSingleton<IMongoClient>(new MongoClient(appDbSettings!.ConnectionString));
+builder.Services.AddScoped<IMongoDatabase>(provider =>
+    provider.GetRequiredService<IMongoClient>().GetDatabase(appDbSettings!.DatabaseName));
+
+builder.Services.AddScoped(typeof(IMongoRepository<>), typeof(MongoRepository<>));
 
 builder.Services.AddIdentity<ChatUser, ChatRole>(options =>
     {
@@ -145,17 +155,22 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapControllers();
-
 app.UseStaticFiles();
-
 app.UseRouting();
+
+app.UseCors("AllowAll");
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseMiddleware<ErrorHandlingMiddleWare>();
+
 app.MapHub<ChatHub>("/Chat");
 
-app.UseCors("AllowAll");
+app.MapGet("/", context =>
+{
+    context.Response.Redirect("/client.html");
+    return Task.CompletedTask;
+});
 
 app.Run();

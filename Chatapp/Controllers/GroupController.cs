@@ -23,7 +23,7 @@ public class GroupController(IGroupService groupService) : ControllerBase
     [HttpGet("{groupId}")]
     public async Task<ActionResult<Group>> GetGroupById(string groupId)
     {
-        var group = await groupService.GetGroupByIdAsync(new ObjectId(groupId));
+        var group = await groupService.GetGroupByIdAsync(groupId);
         return Ok(group);
     }
 
@@ -31,11 +31,7 @@ public class GroupController(IGroupService groupService) : ControllerBase
     [HttpPut("{groupId}")]
     public async Task<IActionResult> UpdateGroup(string groupId, [FromBody] Group updatedGroup)
     {
-        var result = await groupService.UpdateGroupAsync(new ObjectId(groupId), updatedGroup);
-        if (!result)
-        {
-            return NotFound();
-        }
+        await groupService.UpdateGroupAsync(groupId, updatedGroup);
         return NoContent();
     }
 
@@ -43,11 +39,7 @@ public class GroupController(IGroupService groupService) : ControllerBase
     [HttpDelete("{groupId}")]
     public async Task<IActionResult> DeleteGroup(string groupId)
     {
-        var result = await groupService.DeleteGroupAsync(new ObjectId(groupId));
-        if (!result)
-        {
-            return NotFound();
-        }
+        await groupService.DeleteGroupAsync(groupId);
         return NoContent();
     }
 
@@ -55,7 +47,7 @@ public class GroupController(IGroupService groupService) : ControllerBase
     [HttpPost("join")]
     public async Task<IActionResult> JoinGroup(string userId, string groupId)
     {
-        var result = await groupService.AddUserToGroupAsync(new ObjectId(userId), new ObjectId(groupId));
+        var result = await groupService.AddUserToGroupAsync(userId, groupId);
         if (!result)
         {
             return NotFound();
@@ -67,7 +59,7 @@ public class GroupController(IGroupService groupService) : ControllerBase
     [HttpPost("leave")]
     public async Task<IActionResult> LeaveGroup(string userId, string groupId)
     {
-        var result = await groupService.RemoveUserFromGroupAsync(new ObjectId(userId), new ObjectId(groupId));
+        var result = await groupService.RemoveUserFromGroupAsync(userId, groupId);
         if (!result)
         {
             return NotFound();
