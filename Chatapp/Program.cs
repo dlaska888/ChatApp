@@ -6,6 +6,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi.Models;
 using MongoDB.Driver;
+using StackExchange.Redis;
 using WebService.Filters;
 using WebService.Helpers;
 using WebService.Helpers.Interfaces;
@@ -109,7 +110,10 @@ builder.Services.AddAuthorizationBuilder()
 
 #region Config
 
-builder.Services.AddSignalR();
+builder.Services
+    .AddSignalR()
+    .AddStackExchangeRedis(builder.Configuration.GetConnectionString("Redis")!);
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

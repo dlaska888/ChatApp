@@ -179,42 +179,51 @@
             });
 
             // Create a function that the hub can call to broadcast messages
-            connection.on("receiveMessage", (senderId, message) => {
+            connection.on("ReceiveMessage", (senderId, senderName, message) => {
                 const chat = chats[senderId] || createChatContainer(senderId);
-                addMessageToChat(chat, senderId, message);
+                addMessageToChat(chat, senderName, message);
             });
 
-            connection.on("updateConnectedUsers", (connections) => {
-                updateConnectedUsers(connections);
+            connection.on("AlertUserConnected", (userId, userName) => {
+                addConnectedUser({ id: userId, name: userName });
+            });
+
+            connection.on("AlertUserDisconnected", (userId) => {
+                removeConnectedUser(userId);
             });
 
             async function fetchConnectedUsers() {
                 try {
                     const users = await connection.invoke("GetConnectedUsers");
-                    updateConnectedUsers(users);
+                    users.forEach(user => addConnectedUser(user));
                 } catch (err) {
                     console.error(err.toString());
                 }
             }
 
-            function updateConnectedUsers(connections) {
+            function addConnectedUser(user) {
                 const connectionsList = document.getElementById('connections');
-                connectionsList.innerHTML = '';
-                connections.forEach(conn => {
-                    const li = document.createElement('li');
-                    li.innerText = conn === myId ? "Saved Messages" : conn;
-                    li.addEventListener('click', () => {
-                        recipientId = conn;
-                        // Highlight the selected user
-                        document.querySelectorAll('#connections li').forEach(item => {
-                            item.classList.remove('selected');
-                        });
-                        li.classList.add('selected');
-                        // Show the selected chat
-                        showChat(conn);
+                const li = document.createElement('li');
+                li.innerText = user.name;
+                li.id = `user-${user.id}`;
+                li.addEventListener('click', () => {
+                    recipientId = user.id;
+                    // Highlight the selected user
+                    document.querySelectorAll('#connections li').forEach(item => {
+                        item.classList.remove('selected');
                     });
-                    connectionsList.appendChild(li);
+                    li.classList.add('selected');
+                    // Show the selected chat
+                    showChat(user.id);
                 });
+                connectionsList.appendChild(li);
+            }
+
+            function removeConnectedUser(userId) {
+                const userElement = document.getElementById(`user-${userId}`);
+                if (userElement) {
+                    userElement.remove();
+                }
             }
 
             function createChatContainer(userId) {
@@ -234,12 +243,12 @@
                 chat.classList.add('active-chat');
             }
 
-            function addMessageToChat(chat, senderId, message) {
+            function addMessageToChat(chat, senderName, message) {
                 const encodedMsg = document.createElement('div');
                 encodedMsg.innerText = message;
 
                 const li = document.createElement('li');
-                li.innerHTML = `<strong>${senderId === myId ? 'Me' : senderId}</strong>:&nbsp;&nbsp;${encodedMsg.innerHTML}`;
+                li.innerHTML = `<strong>${senderName === myId ? 'Me' : senderName}</strong>:&nbsp;&nbsp;${encodedMsg.innerHTML}`;
                 chat.appendChild(li);
             }
 

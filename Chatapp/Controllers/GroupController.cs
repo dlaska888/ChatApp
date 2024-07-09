@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Bson;
+using WebService.Models.Dtos.Groups;
 using WebService.Models.Entities;
+using WebService.Providers.Interfaces;
 using WebService.Services.Interfaces;
 
 namespace WebService.Controllers;
@@ -9,13 +10,14 @@ namespace WebService.Controllers;
 [Authorize]
 [ApiController]
 [Route("[controller]")]
-public class GroupController(IGroupService groupService) : ControllerBase
+public class GroupController(IGroupService groupService, IAuthContextProvider contextProvider) : ControllerBase
 {
     // Create a new group
     [HttpPost("create")]
-    public async Task<ActionResult<Group>> CreateGroup([FromBody] Group group)
+    public async Task<ActionResult<Group>> CreateGroup([FromBody] CreateGroupDto group)
     {
-        var createdGroup = await groupService.CreateGroupAsync(group);
+        var userId = contextProvider.GetUserId();
+        var createdGroup = await groupService.CreateGroupAsync(userId, group);
         return CreatedAtAction(nameof(GetGroupById), new { groupId = createdGroup.Id.ToString() }, createdGroup);
     }
 
@@ -23,13 +25,14 @@ public class GroupController(IGroupService groupService) : ControllerBase
     [HttpGet("{groupId}")]
     public async Task<ActionResult<Group>> GetGroupById(string groupId)
     {
-        var group = await groupService.GetGroupByIdAsync(groupId);
+        var userId = contextProvider.GetUserId();
+        var group = await groupService.GetGroupByIdAsync(userId, groupId);
         return Ok(group);
     }
 
     // Update group
     [HttpPut("{groupId}")]
-    public async Task<IActionResult> UpdateGroup(string groupId, [FromBody] Group updatedGroup)
+    public async Task<IActionResult> UpdateGroup(string groupId, [FromBody] UpdateGroupDto updatedGroup)
     {
         await groupService.UpdateGroupAsync(groupId, updatedGroup);
         return NoContent();
@@ -39,7 +42,8 @@ public class GroupController(IGroupService groupService) : ControllerBase
     [HttpDelete("{groupId}")]
     public async Task<IActionResult> DeleteGroup(string groupId)
     {
-        await groupService.DeleteGroupAsync(groupId);
+        var userId = contextProvider.GetUserId();
+        await groupService.DeleteGroupAsync(userId, groupId);
         return NoContent();
     }
 
@@ -52,6 +56,7 @@ public class GroupController(IGroupService groupService) : ControllerBase
         {
             return NotFound();
         }
+
         return Ok();
     }
 
@@ -64,6 +69,7 @@ public class GroupController(IGroupService groupService) : ControllerBase
         {
             return NotFound();
         }
+
         return Ok();
     }
 }

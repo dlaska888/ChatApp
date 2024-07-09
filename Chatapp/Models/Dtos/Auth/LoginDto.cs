@@ -1,4 +1,4 @@
-﻿namespace WebService.Models.Dtos;
+﻿namespace WebService.Models.Dtos.Auth;
 
 public class LoginDto
 {

@@ -11,7 +11,7 @@ namespace WebService.Services;
 public class ChatService(
     IMongoRepository<ChatUser> userRepo,
     IMongoRepository<Message> messageRepo,
-    IMongoRepository<Group> groupRepo) : IChatService
+    IGroupService groupService) : IChatService
 {
     public async Task CreateAsync(CreateMessageDto dto)
     {
@@ -25,7 +25,7 @@ public class ChatService(
         await messageRepo.InsertOneAsync(message);
     }
 
-    public async Task<IEnumerable<GetChatDto>> GetAllChats(string userId)
+    public async Task<IEnumerable<GetChatDto>> GetAllChatsAsync(string userId)
     {
         var userObjectId = new ObjectId(userId);
         var allChats = new List<GetChatDto>();
@@ -56,11 +56,7 @@ public class ChatService(
             ChatTypeEnum = ChatTypeEnum.Private,
         }));
 
-        var groups = await groupRepo
-            .AsQueryable()
-            .Where(g => g.UserIds.Contains(userObjectId))
-            .ToAsyncEnumerable()
-            .ToListAsync();
+        var groups = await groupService.GetAllGroupsAsync(userId);
 
         allChats.AddRange(groups.Select(g => new GetChatDto
         {
@@ -72,7 +68,7 @@ public class ChatService(
         return allChats;
     }
 
-    public async Task<IEnumerable<GetMessageDto>> GetMessagesByChat(string userId, string receiverId,
+    public async Task<IEnumerable<GetMessageDto>> GetMessagesByChatAsync(string userId, string receiverId,
         ChatTypeEnum chatTypeEnum, string? earliestMessageId)
 
     {
@@ -82,13 +78,14 @@ public class ChatService(
 
         return chatTypeEnum switch
         {
-            ChatTypeEnum.Private => await GetPrivateMessages(userObjectId, receiverObjectId, earliestMessageObjectId),
-            ChatTypeEnum.Group => await GetGroupMessages(userObjectId, receiverObjectId, earliestMessageObjectId),
+            ChatTypeEnum.Private => await GetPrivateMessagesAsync(userObjectId, receiverObjectId,
+                earliestMessageObjectId),
+            ChatTypeEnum.Group => await GetGroupMessagesAsync(userObjectId, receiverObjectId, earliestMessageObjectId),
             _ => throw new ArgumentOutOfRangeException(nameof(chatTypeEnum), chatTypeEnum, null)
         };
     }
 
-    private async Task<IEnumerable<GetMessageDto>> GetPrivateMessages(ObjectId senderId, ObjectId receiverId,
+    private async Task<IEnumerable<GetMessageDto>> GetPrivateMessagesAsync(ObjectId senderId, ObjectId receiverId,
         ObjectId? earliestMessageId)
     {
         return await messageRepo
@@ -109,13 +106,11 @@ public class ChatService(
             .ToListAsync();
     }
 
-    private async Task<IEnumerable<GetMessageDto>> GetGroupMessages(ObjectId userId, ObjectId groupId,
+    private async Task<IEnumerable<GetMessageDto>> GetGroupMessagesAsync(ObjectId userId, ObjectId groupId,
         ObjectId? earliestMessageId)
     {
-        if (!await UserHasAccessToGroup(userId, groupId))
-        {
-            throw new UnauthorizedException("User does not have access to this group");
-        }
+        if (!await groupService.UserHasAccessToGroup(userId.ToString(), groupId.ToString()))
+            throw new UnauthorizedException("User does not have access to this group.");
 
         return await messageRepo
             .AsQueryable()
@@ -131,17 +126,5 @@ public class ChatService(
             })
             .ToAsyncEnumerable()
             .ToListAsync();
-    }
-
-    private async Task<bool> UserHasAccessToGroup(ObjectId userId, ObjectId groupId)
-    {
-        var groupChat = await groupRepo
-            .AsQueryable()
-            .Where(g => g.Id == groupId)
-            .Where(g => g.UserIds.Contains(userId))
-            .ToAsyncEnumerable()
-            .FirstOrDefaultAsync();
-
-        return groupChat is not null;
     }
 }

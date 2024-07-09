@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using WebService.Helpers.Interfaces;
 using WebService.Models.Dtos;
+using WebService.Models.Dtos.Auth;
 using WebService.Providers.Interfaces;
 
 namespace WebService.Controllers;

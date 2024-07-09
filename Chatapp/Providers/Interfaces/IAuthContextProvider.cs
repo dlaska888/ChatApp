@@ -2,7 +2,7 @@
 
 public interface IAuthContextProvider
 {
-    string? GetUserId();
-    string? GetUserEmail();
-    string? GetUserName();
+    string GetUserId();
+    string GetUserEmail();
+    string GetUserName();
 }

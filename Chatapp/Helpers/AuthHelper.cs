@@ -8,6 +8,7 @@ using WebService.Exceptions;
 using WebService.Helpers.Interfaces;
 using WebService.Models;
 using WebService.Models.Dtos;
+using WebService.Models.Dtos.Auth;
 using WebService.Models.Entities;
 
 namespace WebService.Helpers;

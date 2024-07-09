@@ -2,6 +2,7 @@
 
 public interface IChatClient
 {
-    Task ReceiveMessage(string userId, string message);
-    Task UpdateConnectedUsers(ICollection<string> users);
+    Task ReceiveMessage(string userId, string userName, string message);
+    Task AlertUserConnected(string userId, string userName);
+    Task AlertUserDisconnected(string userId);
 }

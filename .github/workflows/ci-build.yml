@@ -1,0 +1,40 @@
+name: CI Build
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: .NET Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test --no-restore --verbosity normal
+
+      - name: Build Docker image
+        run: docker build -t chatapp:latest -f ./ChatApp/Dockerfile . 
+
+      - name: Run Docker container
+        run: docker run -d --name chatapp -p 5000:8080 chatapp:latest
+      
+      - name: Check app health
+        run: curl --retry 10 --retry-connrefused http://localhost:5000
+
+      - name: Stop and remove Docker container
+        run: docker stop chatapp && docker rm chatapp

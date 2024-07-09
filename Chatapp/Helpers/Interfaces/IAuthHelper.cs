@@ -1,4 +1,5 @@
 ﻿using WebService.Models.Dtos;
+using WebService.Models.Dtos.Auth;
 
 namespace WebService.Helpers.Interfaces;
 
