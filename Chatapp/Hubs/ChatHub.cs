@@ -10,7 +10,7 @@ using WebService.Services.Interfaces;
 namespace WebService.Hubs;
 
 [Authorize]
-public class ChatHub(IChatService chatService, IGroupService groupService) : Hub<IChatClient>
+public class ChatHub(IChatService chatService, IGroupService groupService, IPresenceService presenceService) : Hub<IChatClient>
 {
     private static readonly ConcurrentDictionary<string, HubUser> ConnectedUsers = new();
 
@@ -41,7 +41,8 @@ public class ChatHub(IChatService chatService, IGroupService groupService) : Hub
 
         if (user.ConnectionIds.Count == 1)
         {
-            await Clients.Others.AlertUserConnected(userId, userName);
+            var clientsToAlert = await presenceService.GetUsersToNotify(userId);
+            await Clients.Users(clientsToAlert).NotifyUserConnected(userId, userName);
         }
     }
 
@@ -63,7 +64,7 @@ public class ChatHub(IChatService chatService, IGroupService groupService) : Hub
         if (user.ConnectionIds.Count == 0)
         {
             ConnectedUsers.TryRemove(userId, out _);
-            await Clients.Others.AlertUserDisconnected(userId);
+            await Clients.Others.NotifyUserDisconnected(userId);
         }
 
         await base.OnDisconnectedAsync(exception);

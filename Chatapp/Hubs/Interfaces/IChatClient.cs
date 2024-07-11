@@ -3,6 +3,6 @@
 public interface IChatClient
 {
     Task ReceiveMessage(string userId, string userName, string message);
-    Task AlertUserConnected(string userId, string userName);
-    Task AlertUserDisconnected(string userId);
+    Task NotifyUserConnected(string userId, string userName);
+    Task NotifyUserDisconnected(string userId);
 }

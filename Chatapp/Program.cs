@@ -28,6 +28,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IGroupService, GroupService>();
+builder.Services.AddScoped<IPresenceService, PresenceService>();
 
 #endregion
 
@@ -44,6 +45,15 @@ builder.Services.Configure<AuthMessageSenderOptions>(builder.Configuration);
 #region Middlewares
 
 builder.Services.AddScoped<ErrorHandlingMiddleWare>();
+
+#endregion
+
+#region Queue
+
+var queueSettingSection = builder.Configuration.GetSection("QueueOptions");
+builder.Services.Configure<QueueOptions>(queueSettingSection);
+
+builder.Services.AddScoped<INotificationProducerService, NotificationProducerService>();
 
 #endregion
 
