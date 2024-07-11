@@ -1,6 +1,10 @@
 services:
   chatapp:
     image: chatapp
+    depends_on:
+      - kafka
+      - mongo
+      - redis
     build:
       context: .
       dockerfile: ChatApp/Dockerfile
@@ -15,8 +19,7 @@ services:
     volumes:
       - ~/.aspnet/https:/https:ro
     networks:
-      api-network:
-      kafka-network:
+      - api-network
 
   mongo:
     image: mongo:7.0.12
@@ -30,24 +33,26 @@ services:
     volumes:
       - mongodata:/data/db
     networks:
-      api-network:
+      - api-network
 
   redis:
     image: redis:7.2.5-alpine
     ports:
       - '6379:6379'
     networks:
-      api-network:
+      - api-network
   
   zookeeper:
     image: confluentinc/cp-zookeeper:7.4.4
+    depends_on:
+      - kafka
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "22181:2181"
     networks:
-      kafka-network:
+      - kafka-network
   
   kafka:
     image: wurstmeister/kafka:latest
@@ -65,7 +70,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
-      kafka-network:
+      - api-network
+      - kafka-network
 
 volumes:
   mongodata:

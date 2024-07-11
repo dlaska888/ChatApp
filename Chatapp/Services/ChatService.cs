@@ -1,6 +1,6 @@
 ﻿using MongoDB.Bson;
+using WebService.Enums;
 using WebService.Exceptions;
-using WebService.Models;
 using WebService.Models.Dtos;
 using WebService.Models.Dtos.Messages;
 using WebService.Models.Entities;
@@ -11,19 +11,32 @@ namespace WebService.Services;
 
 public class ChatService(
     IMongoRepository<ChatUser> userRepo,
-    IMongoRepository<Message> messageRepo,
+    IMongoRepository<PrivateMessage> privateMessageRepo,
+    IMongoRepository<GroupMessage> groupMessageRepo,
     IGroupService groupService) : IChatService
 {
-    public async Task CreateAsync(CreateMessageDto dto)
+    public async Task CreatePrivateMessageAsync(CreateMessageDto dto)
     {
-        var message = new Message
+        var message = new PrivateMessage
         {
             SenderId = new ObjectId(dto.SenderId),
             ReceiverId = new ObjectId(dto.ReceiverId),
             Content = dto.Content,
         };
 
-        await messageRepo.InsertOneAsync(message);
+        await privateMessageRepo.InsertOneAsync(message);
+    }
+
+    public async Task CreateGroupMessageAsync(CreateMessageDto dto)
+    {
+        var message = new GroupMessage()
+        {
+            SenderId = new ObjectId(dto.SenderId),
+            GroupId = new ObjectId(dto.ReceiverId),
+            Content = dto.Content,
+        };
+
+        await groupMessageRepo.InsertOneAsync(message);
     }
 
     public async Task<IEnumerable<GetChatDto>> GetAllChatsAsync(string userId)
@@ -39,29 +52,62 @@ public class ChatService(
         return allChats;
     }
 
-
-    public async Task<IEnumerable<GetMessageDto>> GetMessagesByChatAsync(string userId, string receiverId,
-        ChatTypeEnum chatTypeEnum, string? earliestMessageId)
-
+    public async Task<IEnumerable<GetMessageDto>> GetPrivateMessagesAsync(string userId, string receiverId,
+        string? earliestMessageId)
     {
         var userObjectId = new ObjectId(userId);
         var receiverObjectId = new ObjectId(receiverId);
-        var earliestMessageObjectId = earliestMessageId != null ? new ObjectId(earliestMessageId) : (ObjectId?)null;
+        ObjectId.TryParse(earliestMessageId, out var earliestMessageObjectId);
 
-        return chatTypeEnum switch
-        {
-            ChatTypeEnum.Private => await GetPrivateMessagesAsync(userObjectId, receiverObjectId,
-                earliestMessageObjectId),
-            ChatTypeEnum.Group => await GetGroupMessagesAsync(userObjectId, receiverObjectId, earliestMessageObjectId),
-            _ => throw new ArgumentOutOfRangeException(nameof(chatTypeEnum), chatTypeEnum, null)
-        };
+        return await privateMessageRepo
+            .AsQueryable()
+            .Where(m =>
+                (m.SenderId == userObjectId && m.ReceiverId == receiverObjectId) ||
+                (m.SenderId == receiverObjectId && m.ReceiverId == userObjectId))
+            .Where(m => earliestMessageId == null || m.Id < earliestMessageObjectId)
+            .Select(m => new GetMessageDto
+            {
+                Id = m.Id.ToString(),
+                SenderId = m.SenderId.ToString(),
+                ReceiverId = m.ReceiverId.ToString(),
+                Content = m.Content,
+                CreatedAt = m.CreatedAt
+            })
+            .ToAsyncEnumerable()
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<GetMessageDto>> GetGroupMessagesAsync(string userId, string groupId,
+        string? earliestMessageId)
+    {
+        if (!await groupService.UserHasAccessToGroup(userId, groupId))
+            throw new UnauthorizedException("User does not have access to this group.");
+
+        var groupObjectId = new ObjectId(groupId);
+        ObjectId.TryParse(earliestMessageId, out var earliestMessageObjectId);
+
+        return await groupMessageRepo
+            .AsQueryable()
+            .Where(m => m.GroupId == groupObjectId)
+            .Where(m => earliestMessageId == null || m.Id < earliestMessageObjectId)
+            .Select(m => new GetMessageDto
+            {
+                Id = m.Id.ToString(),
+                SenderId = m.SenderId.ToString(),
+                ReceiverId = m.GroupId.ToString(),
+                Content = m.Content,
+                CreatedAt = m.CreatedAt
+            })
+            .ToAsyncEnumerable()
+            .ToListAsync();
     }
 
     private async Task<IEnumerable<GetChatDto>> GetPrivateChatsAsync(string userId)
     {
         var userObjectId = new ObjectId(userId);
 
-        var privateChats = await messageRepo.AsQueryable()
+        var privateChats = await privateMessageRepo
+            .AsQueryable()
             .Where(m => m.SenderId == userObjectId || m.ReceiverId == userObjectId)
             .GroupBy(m => new { m.SenderId, m.ReceiverId })
             .Select(g => new
@@ -80,12 +126,14 @@ public class ChatService(
             .Where(user => chatNameIds.Contains(user.Id))
             .ToDictionary(user => user.Id, user => user.UserName);
 
-        return privateChats.Select(m => new GetChatDto
-        {
-            Name = userNames[m.ChatNameId]!,
-            ReceiverId = m.ChatNameId.ToString(),
-            ChatTypeEnum = ChatTypeEnum.Private,
-        }).ToList();
+        return privateChats
+            .Select(m => new GetChatDto
+            {
+                Name = userNames[m.ChatNameId]!,
+                ReceiverId = m.ChatNameId.ToString(),
+                ChatTypeEnum = ChatTypeEnum.Private
+            })
+            .ToList();
     }
 
     private async Task<IEnumerable<GetChatDto>> GetGroupChatsAsync(string userId)
@@ -98,48 +146,5 @@ public class ChatService(
             ReceiverId = g.Id.ToString(),
             ChatTypeEnum = ChatTypeEnum.Group
         }).ToList();
-    }
-    
-    private async Task<IEnumerable<GetMessageDto>> GetPrivateMessagesAsync(ObjectId senderId, ObjectId receiverId,
-        ObjectId? earliestMessageId)
-    {
-        return await messageRepo
-            .AsQueryable()
-            .Where(m =>
-                (m.SenderId == senderId && m.ReceiverId == receiverId) ||
-                (m.SenderId == receiverId && m.ReceiverId == senderId))
-            .Where(m => earliestMessageId == null || m.Id < earliestMessageId)
-            .Select(m => new GetMessageDto
-            {
-                Id = m.Id.ToString(),
-                SenderId = m.SenderId.ToString(),
-                ReceiverId = m.ReceiverId.ToString(),
-                Content = m.Content,
-                CreatedAt = m.CreatedAt
-            })
-            .ToAsyncEnumerable()
-            .ToListAsync();
-    }
-
-    private async Task<IEnumerable<GetMessageDto>> GetGroupMessagesAsync(ObjectId userId, ObjectId groupId,
-        ObjectId? earliestMessageId)
-    {
-        if (!await groupService.UserHasAccessToGroup(userId.ToString(), groupId.ToString()))
-            throw new UnauthorizedException("User does not have access to this group.");
-
-        return await messageRepo
-            .AsQueryable()
-            .Where(m => m.ReceiverId == groupId)
-            .Where(m => earliestMessageId == null || m.Id < earliestMessageId)
-            .Select(m => new GetMessageDto
-            {
-                Id = m.Id.ToString(),
-                SenderId = m.SenderId.ToString(),
-                ReceiverId = m.ReceiverId.ToString(),
-                Content = m.Content,
-                CreatedAt = m.CreatedAt
-            })
-            .ToAsyncEnumerable()
-            .ToListAsync();
     }
 }

@@ -26,6 +26,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 #region Services
 
+builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IGroupService, GroupService>();
 builder.Services.AddScoped<IPresenceService, PresenceService>();
@@ -190,7 +191,7 @@ app.UseAuthorization();
 
 app.UseMiddleware<ErrorHandlingMiddleWare>();
 
-app.MapHub<ChatHub>("/Chat");
+app.MapHub<ChatHub>("/ChatHub");
 
 app.MapGet("/", context =>
 {

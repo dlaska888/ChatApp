@@ -116,11 +116,7 @@
 <!-- Add script to update the page and send messages -->
 <script type="text/javascript">
     document.addEventListener("DOMContentLoaded", function () {
-        const ChannelTypeEnum = {
-            Private: 0,
-            Group: 1
-        };
-
+        
         let token = localStorage.getItem('token');
         let refreshToken = localStorage.getItem('refreshToken');
         let recipientId = null; // Store the recipient's ID for private messages
@@ -169,7 +165,7 @@
         function startSignalRConnection() {
             // Declare a connection to the hub with JWT token
             const connection = new signalR.HubConnectionBuilder()
-                .withUrl("/Chat", {
+                .withUrl("/ChatHub", {
                     accessTokenFactory: getJwtToken
                 })
                 .build();
@@ -180,6 +176,7 @@
 
             // Create a function that the hub can call to broadcast messages
             connection.on("ReceiveMessage", (senderId, senderName, message) => {
+                console.log(`Received message from ${senderName}: ${message}`);
                 const chat = chats[senderId] || createChatContainer(senderId);
                 addMessageToChat(chat, senderName, message);
             });
@@ -261,7 +258,7 @@
                 document.getElementById('sendmessage').addEventListener('click', () => {
                     if (recipientId) {
                         // Call the Send method on the hub with the selected recipient
-                        connection.invoke("SendMessage", recipientId, ChannelTypeEnum.Private, document.getElementById('message').value)
+                        connection.invoke("SendPrivateMessage", recipientId, document.getElementById('message').value)
                             .catch(async (err) => {
                                 console.error(err.toString());
                             });

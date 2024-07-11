@@ -7,8 +7,6 @@ namespace WebService.Models.Entities;
 public class Group : Document
 {
     public string Name { get; set; } = null!;
-
     public string Description { get; set; } = null!;
-
-    public List<ObjectId> UserIds { get; set; } = new();
+    public ICollection<ObjectId> UserIds { get; set; } = new List<ObjectId>();
 }

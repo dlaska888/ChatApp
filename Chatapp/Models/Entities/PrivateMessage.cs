@@ -3,8 +3,8 @@ using WebService.Attributes;
 
 namespace WebService.Models.Entities;
 
-[BsonCollection("messages")]
-public class Message : Document
+[BsonCollection("privateMessages")]
+public class PrivateMessage : Document
 {
     public ObjectId SenderId { get; set; }
     public ObjectId ReceiverId { get; set; }

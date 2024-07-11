@@ -10,6 +10,7 @@ public class ChatUser : MongoIdentityUser<ObjectId>, IDocument
 {
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExp { get; set; }
-    
     public DateTime CreatedAt => Id.CreationTime;
+    
+    public ICollection<ObjectId> GroupIds { get; set; } = new List<ObjectId>();
 }

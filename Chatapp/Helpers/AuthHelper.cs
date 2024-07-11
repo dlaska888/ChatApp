@@ -25,8 +25,8 @@ public class AuthHelper(
 
     public async Task<TokenDto> SignIn(LoginDto dto)
     {
-        var user = await userManager.FindByNameAsync(dto.Username) ??
-                   await userManager.FindByEmailAsync(dto.Username);
+        var user = await userManager.FindByNameAsync(dto.UserName) ??
+                   await userManager.FindByEmailAsync(dto.UserName);
 
         if (user is null)
             throw new UnauthorizedException("Invalid credentials");

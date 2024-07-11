@@ -5,7 +5,7 @@ using WebService.Services.Interfaces;
 
 namespace WebService.Services;
 
-public class PresenceService(IMongoRepository<Message> messageRepo) : IPresenceService
+public class PresenceService(IMongoRepository<PrivateMessage> messageRepo) : IPresenceService
 {
     public async Task<IEnumerable<string>> GetUsersToNotify(string userId)
     {

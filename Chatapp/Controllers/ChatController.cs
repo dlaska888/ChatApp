@@ -13,20 +13,29 @@ public class ChatController(
     IChatService chatService,
     IAuthContextProvider contextProvider) : ControllerBase
 {
-    [HttpGet("messages/{chatTypeEnum}/{receiverId}")]
-    public async Task<IActionResult> GetChats(ChatTypeEnum chatTypeEnum, string receiverId,
-        [FromQuery] string? earliestMessageId)
+    [HttpGet("private/messages/{receiverId}")]
+    public async Task<IActionResult> GetPrivateMessages(string receiverId, [FromQuery] string? earliestMessageId)
     {
         var senderId = contextProvider.GetUserId();
-        var messages = await chatService.GetMessagesByChatAsync(
-            senderId, 
+        var messages = await chatService.GetPrivateMessagesAsync(
+            senderId,
             receiverId,
-            chatTypeEnum, 
             earliestMessageId);
         return Ok(messages);
     }
 
-    [HttpGet("chats")]
+    [HttpGet("group/messages/{groupId}")]
+    public async Task<IActionResult> GetGroupMessages(string groupId, [FromQuery] string? earliestMessageId)
+    {
+        var senderId = contextProvider.GetUserId();
+        var messages = await chatService.GetGroupMessagesAsync(
+            senderId,
+            groupId,
+            earliestMessageId);
+        return Ok(messages);
+    }
+
+    [HttpGet]
     public async Task<IActionResult> GetAllChats()
     {
         var userId = contextProvider.GetUserId();

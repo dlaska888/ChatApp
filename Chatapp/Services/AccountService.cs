@@ -14,6 +14,7 @@ public class AccountService(UserManager<ChatUser> userManager) : IAccountService
         return new GetAccountDto
         {
             Id = user.Id.ToString(),
+            UserName = user.UserName!,
             Email = user.Email!,
             CreatedAt = user.CreatedAt,
             EmailConfirmed = user.EmailConfirmed,

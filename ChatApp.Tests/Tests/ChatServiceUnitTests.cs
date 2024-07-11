@@ -1,8 +1,7 @@
-﻿using MongoDB.Bson;
-using Moq;
+﻿using Moq;
+using MongoDB.Bson;
+using WebService.Enums;
 using WebService.Exceptions;
-using WebService.Models;
-using WebService.Models.Dtos;
 using WebService.Models.Dtos.Groups;
 using WebService.Models.Dtos.Messages;
 using WebService.Models.Entities;
@@ -15,34 +14,37 @@ namespace ChatApp.Tests.Tests
     public class ChatServiceTests
     {
         private readonly Mock<IMongoRepository<ChatUser>> _mockUserRepo;
-        private readonly Mock<IMongoRepository<Message>> _mockMessageRepo;
+        private readonly Mock<IMongoRepository<PrivateMessage>> _mockPrivateMessageRepo;
+        private readonly Mock<IMongoRepository<GroupMessage>> _mockGroupMessageRepo;
         private readonly Mock<IGroupService> _mockGroupService;
         private readonly ChatService _chatService;
 
         public ChatServiceTests()
         {
             _mockUserRepo = new Mock<IMongoRepository<ChatUser>>();
-            _mockMessageRepo = new Mock<IMongoRepository<Message>>();
+            _mockPrivateMessageRepo = new Mock<IMongoRepository<PrivateMessage>>();
+            _mockGroupMessageRepo = new Mock<IMongoRepository<GroupMessage>>();
             _mockGroupService = new Mock<IGroupService>();
-            _chatService = new ChatService(_mockUserRepo.Object, _mockMessageRepo.Object, _mockGroupService.Object);
+            _chatService = new ChatService(_mockUserRepo.Object, _mockPrivateMessageRepo.Object,
+                _mockGroupMessageRepo.Object, _mockGroupService.Object);
         }
 
         [Fact]
-        public async Task CreateAsync_ShouldCallInsertOneAsync()
+        public async Task CreatePrivateMessageAsync_ShouldInsertPrivateMessage()
         {
             // Arrange
             var dto = new CreateMessageDto
             {
                 SenderId = ObjectId.GenerateNewId().ToString(),
                 ReceiverId = ObjectId.GenerateNewId().ToString(),
-                Content = "Test message"
+                Content = "Test private message"
             };
 
             // Act
-            await _chatService.CreateAsync(dto);
+            await _chatService.CreatePrivateMessageAsync(dto);
 
             // Assert
-            _mockMessageRepo.Verify(repo => repo.InsertOneAsync(It.Is<Message>(m =>
+            _mockPrivateMessageRepo.Verify(repo => repo.InsertOneAsync(It.Is<PrivateMessage>(m =>
                 m.SenderId == new ObjectId(dto.SenderId) &&
                 m.ReceiverId == new ObjectId(dto.ReceiverId) &&
                 m.Content == dto.Content
@@ -50,38 +52,59 @@ namespace ChatApp.Tests.Tests
         }
 
         [Fact]
-        public async Task GetAllChats_ShouldReturnAllChats()
+        public async Task CreateGroupMessageAsync_ShouldInsertGroupMessage()
         {
             // Arrange
-            var userObjectId = ObjectId.GenerateNewId();
-            var userId = userObjectId.ToString();
-
-            var messages = new List<Message>
+            var dto = new CreateMessageDto
             {
-                new()
+                SenderId = ObjectId.GenerateNewId().ToString(),
+                ReceiverId = ObjectId.GenerateNewId().ToString(),
+                Content = "Test group message"
+            };
+
+            // Act
+            await _chatService.CreateGroupMessageAsync(dto);
+
+            // Assert
+            _mockGroupMessageRepo.Verify(repo => repo.InsertOneAsync(It.Is<GroupMessage>(m =>
+                m.SenderId == new ObjectId(dto.SenderId) &&
+                m.GroupId == new ObjectId(dto.ReceiverId) &&
+                m.Content == dto.Content
+            )), Times.Once);
+        }
+
+        [Fact]
+        public async Task GetAllChatsAsync_ShouldReturnAllChats()
+        {
+            // Arrange
+            var userId = ObjectId.GenerateNewId().ToString();
+
+            var privateMessages = new List<PrivateMessage>
+            {
+                new PrivateMessage
                 {
-                    SenderId = userObjectId,
+                    SenderId = new ObjectId(userId),
                     ReceiverId = ObjectId.GenerateNewId(),
                     Content = "Hello"
                 },
-                new()
+                new PrivateMessage
                 {
                     SenderId = ObjectId.GenerateNewId(),
-                    ReceiverId = userObjectId,
+                    ReceiverId = new ObjectId(userId),
                     Content = "Hi"
                 }
             }.AsQueryable();
 
             var users = new List<ChatUser>
             {
-                new()
+                new ChatUser
                 {
-                    Id = messages.First().ReceiverId,
+                    Id = privateMessages.First().ReceiverId,
                     UserName = "User1"
                 },
-                new()
+                new ChatUser
                 {
-                    Id = messages.Last().SenderId,
+                    Id = privateMessages.Last().SenderId,
                     UserName = "User2"
                 }
             }.AsQueryable();
@@ -96,7 +119,7 @@ namespace ChatApp.Tests.Tests
                 }
             };
 
-            _mockMessageRepo.Setup(repo => repo.AsQueryable()).Returns(messages);
+            _mockPrivateMessageRepo.Setup(repo => repo.AsQueryable()).Returns(privateMessages);
             _mockUserRepo.Setup(repo => repo.AsQueryable()).Returns(users);
             _mockGroupService.Setup(s => s.GetAllGroupsAsync(It.IsAny<string>())).ReturnsAsync(groups);
 
@@ -111,79 +134,66 @@ namespace ChatApp.Tests.Tests
         }
 
         [Fact]
-        public async Task GetMessagesByChat_ShouldReturnMessagesForPrivateChat()
+        public async Task GetPrivateMessagesAsync_ShouldReturnPrivateMessages()
         {
             // Arrange
             var userId = ObjectId.GenerateNewId().ToString();
             var receiverId = ObjectId.GenerateNewId().ToString();
-            var userObjectId = new ObjectId(userId);
-            var receiverObjectId = new ObjectId(receiverId);
 
-            var messages = new List<Message>
+            var privateMessages = new List<PrivateMessage>
             {
-                new Message
+                new PrivateMessage
                 {
-                    SenderId = userObjectId,
-                    ReceiverId = receiverObjectId,
-                    Content = "Hello",
-                    Id = ObjectId.GenerateNewId()
+                    SenderId = new ObjectId(userId),
+                    ReceiverId = new ObjectId(receiverId),
+                    Content = "Hello"
                 },
-                new Message
+                new PrivateMessage
                 {
-                    SenderId = receiverObjectId,
-                    ReceiverId = userObjectId,
-                    Content = "Hi",
-                    Id = ObjectId.GenerateNewId()
+                    SenderId = new ObjectId(receiverId),
+                    ReceiverId = new ObjectId(userId),
+                    Content = "Hi"
                 }
             }.AsQueryable();
 
-            _mockMessageRepo.Setup(repo => repo.AsQueryable()).Returns(messages);
+            _mockPrivateMessageRepo.Setup(repo => repo.AsQueryable()).Returns(privateMessages);
 
             // Act
-            var result = await _chatService.GetMessagesByChatAsync(userId, receiverId, ChatTypeEnum.Private, null);
+            var result = await _chatService.GetPrivateMessagesAsync(userId, receiverId, null);
 
             // Assert
             Assert.Equal(2, result.Count());
         }
 
         [Fact]
-        public async Task GetMessagesByChat_ShouldReturnMessagesForGroupChat()
+        public async Task GetGroupMessagesAsync_ShouldReturnGroupMessages()
         {
             // Arrange
             var userId = ObjectId.GenerateNewId().ToString();
             var groupId = ObjectId.GenerateNewId().ToString();
-            var userObjectId = new ObjectId(userId);
-            var groupObjectId = new ObjectId(groupId);
 
-            var messages = new List<Message>
+            var groupMessages = new List<GroupMessage>
             {
-                new Message
+                new GroupMessage
                 {
-                    SenderId = userObjectId,
-                    ReceiverId = groupObjectId,
-                    Content = "Hello group",
-                    Id = ObjectId.GenerateNewId()
+                    SenderId = new ObjectId(userId),
+                    GroupId = new ObjectId(groupId),
+                    Content = "Hello group"
                 }
             }.AsQueryable();
 
-            var group = new Group
-            {
-                Id = groupObjectId,
-                UserIds = new List<ObjectId> { userObjectId }
-            };
-
-            _mockMessageRepo.Setup(repo => repo.AsQueryable()).Returns(messages);
+            _mockGroupMessageRepo.Setup(repo => repo.AsQueryable()).Returns(groupMessages);
             _mockGroupService.Setup(service => service.UserHasAccessToGroup(userId, groupId)).ReturnsAsync(true);
 
             // Act
-            var result = await _chatService.GetMessagesByChatAsync(userId, groupId, ChatTypeEnum.Group, null);
+            var result = await _chatService.GetGroupMessagesAsync(userId, groupId, null);
 
             // Assert
             Assert.Single(result);
         }
 
         [Fact]
-        public async Task GetMessagesByChat_ShouldThrowUnauthorizedAccessExceptionIfUserNotInGroup()
+        public async Task GetGroupMessagesAsync_ShouldThrowUnauthorizedExceptionIfUserNotInGroup()
         {
             // Arrange
             var userId = ObjectId.GenerateNewId().ToString();
@@ -193,7 +203,7 @@ namespace ChatApp.Tests.Tests
 
             // Act & Assert
             await Assert.ThrowsAsync<UnauthorizedException>(async () =>
-                await _chatService.GetMessagesByChatAsync(userId, groupId, ChatTypeEnum.Group, null));
+                await _chatService.GetGroupMessagesAsync(userId, groupId, null));
         }
     }
 }
