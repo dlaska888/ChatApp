@@ -29,6 +29,12 @@ public class AuthController(IAuthHelper authHelper, IAuthContextProvider authCon
         return Ok(await authHelper.Refresh(refreshToken));
     }
 
+    [HttpPost("confirm-email")]
+    public async Task<IActionResult> ConfirmEmail([FromQuery] string userId, [FromQuery] string token)
+    {
+        return Ok(await authHelper.ConfirmEmail(userId, token));
+    }
+
     [Authorize]
     [HttpGet("me")]
     public IActionResult Me()

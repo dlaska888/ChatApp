@@ -2,6 +2,7 @@
 using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using WebService.Exceptions;
@@ -16,7 +17,8 @@ namespace WebService.Helpers;
 public class AuthHelper(
     UserManager<ChatUser> userManager,
     SignInManager<ChatUser> signInManager,
-    IOptions<JwtOptions> jwtSettings)
+    IOptions<JwtOptions> jwtSettings,
+    IEmailSender emailSender)
     : IAuthHelper
 {
     private readonly JwtOptions _jwtOptions = jwtSettings.Value;
@@ -57,6 +59,8 @@ public class AuthHelper(
         {
             throw new BadRequestException("Failed to create user account.");
         }
+
+        await SendConfirmationEmail(user.Email, user);
 
         return result.Succeeded;
     }
@@ -110,5 +114,35 @@ public class AuthHelper(
     private string GenerateRefreshToken()
     {
         return Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
+    }
+
+    //TODO refactor to use server name parameter and email template
+    private async Task SendConfirmationEmail(string email, ChatUser user)
+    {
+        var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
+        var confirmationLink = $"http://localhost/confirm-email?UserId={user.Id}&Token={token}";
+        await emailSender.SendEmailAsync(email, "Confirm Your Email",
+            $"Please confirm your account by <a href='{confirmationLink}'>clicking here</a>;.");
+    }
+
+    public async Task<bool> ConfirmEmail(string userId, string token)
+    {
+        var user = await userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            throw new BadRequestException("User not found");
+        }
+
+        var result = await userManager.ConfirmEmailAsync(user, token);
+        
+        if (result.Errors.Any())
+            throw new BadRequestException(result.Errors.First().Description);
+
+        if (!result.Succeeded)
+        {
+            throw new BadRequestException("Failed to create user account.");
+        }
+
+        return result.Succeeded;
     }
 }

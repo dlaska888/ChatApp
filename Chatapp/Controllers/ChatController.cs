@@ -17,18 +17,19 @@ public class ChatController(
     public async Task<IActionResult> GetChats(ChatTypeEnum chatTypeEnum, string receiverId,
         [FromQuery] string? earliestMessageId)
     {
-        var senderId = contextProvider.GetUserId()!;
-
-        var messages = await chatService.GetMessagesByChatAsync(senderId, receiverId,
-            chatTypeEnum, earliestMessageId);
-
+        var senderId = contextProvider.GetUserId();
+        var messages = await chatService.GetMessagesByChatAsync(
+            senderId, 
+            receiverId,
+            chatTypeEnum, 
+            earliestMessageId);
         return Ok(messages);
     }
 
     [HttpGet("chats")]
     public async Task<IActionResult> GetAllChats()
     {
-        var userId = contextProvider.GetUserId()!;
+        var userId = contextProvider.GetUserId();
         var chats = await chatService.GetAllChatsAsync(userId);
         return Ok(chats);
     }

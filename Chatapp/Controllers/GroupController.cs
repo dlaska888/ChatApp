@@ -12,7 +12,6 @@ namespace WebService.Controllers;
 [Route("[controller]")]
 public class GroupController(IGroupService groupService, IAuthContextProvider contextProvider) : ControllerBase
 {
-    // Create a new group
     [HttpPost("create")]
     public async Task<ActionResult<Group>> CreateGroup([FromBody] CreateGroupDto group)
     {
@@ -21,7 +20,6 @@ public class GroupController(IGroupService groupService, IAuthContextProvider co
         return CreatedAtAction(nameof(GetGroupById), new { groupId = createdGroup.Id.ToString() }, createdGroup);
     }
 
-    // Read/Get group by ID
     [HttpGet("{groupId}")]
     public async Task<ActionResult<Group>> GetGroupById(string groupId)
     {
@@ -30,15 +28,14 @@ public class GroupController(IGroupService groupService, IAuthContextProvider co
         return Ok(group);
     }
 
-    // Update group
     [HttpPut("{groupId}")]
-    public async Task<IActionResult> UpdateGroup(string groupId, [FromBody] UpdateGroupDto updatedGroup)
+    public async Task<IActionResult> UpdateGroup([FromBody] UpdateGroupDto updatedGroup)
     {
-        await groupService.UpdateGroupAsync(groupId, updatedGroup);
+        var userId = contextProvider.GetUserId();
+        await groupService.UpdateGroupAsync(userId, updatedGroup);
         return NoContent();
     }
 
-    // Delete group
     [HttpDelete("{groupId}")]
     public async Task<IActionResult> DeleteGroup(string groupId)
     {
@@ -47,9 +44,8 @@ public class GroupController(IGroupService groupService, IAuthContextProvider co
         return NoContent();
     }
 
-    // Join a group
-    [HttpPost("join")]
-    public async Task<IActionResult> JoinGroup(string userId, string groupId)
+    [HttpPost("{groupId}/join")]
+    public async Task<IActionResult> JoinGroup(string groupId, [FromBody] string userId)
     {
         var result = await groupService.AddUserToGroupAsync(userId, groupId);
         if (!result)
@@ -60,9 +56,8 @@ public class GroupController(IGroupService groupService, IAuthContextProvider co
         return Ok();
     }
 
-    // Leave a group
-    [HttpPost("leave")]
-    public async Task<IActionResult> LeaveGroup(string userId, string groupId)
+    [HttpPost("{groupId}/leave")]
+    public async Task<IActionResult> LeaveGroup(string groupId, [FromBody] string userId)
     {
         var result = await groupService.RemoveUserFromGroupAsync(userId, groupId);
         if (!result)

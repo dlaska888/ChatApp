@@ -4,9 +4,9 @@ using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.OpenApi.Models;
 using MongoDB.Driver;
-using StackExchange.Redis;
 using WebService.Filters;
 using WebService.Helpers;
 using WebService.Helpers.Interfaces;
@@ -14,7 +14,7 @@ using WebService.Hubs;
 using WebService.Middlewares;
 using WebService.Models;
 using WebService.Models.Entities;
-using WebService.Models.Entities.Interfaces;
+using WebService.Models.Options;
 using WebService.Providers;
 using WebService.Providers.Interfaces;
 using WebService.Repositories;
@@ -35,6 +35,9 @@ builder.Services.AddScoped<IGroupService, GroupService>();
 
 builder.Services.AddScoped<IAuthHelper, AuthHelper>();
 builder.Services.AddScoped<IAuthContextProvider, AuthContextProvider>();
+
+builder.Services.AddTransient<IEmailSender, EmailSender>();
+builder.Services.Configure<AuthMessageSenderOptions>(builder.Configuration);
 
 #endregion
 
@@ -110,11 +113,12 @@ builder.Services.AddAuthorizationBuilder()
 
 #region Config
 
+builder.Services.AddHttpContextAccessor();
+
 builder.Services
     .AddSignalR()
     .AddStackExchangeRedis(builder.Configuration.GetConnectionString("Redis")!);
 
-builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(option =>

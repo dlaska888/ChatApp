@@ -1,5 +1,4 @@
 ﻿using System.Security.Claims;
-using Microsoft.AspNetCore.SignalR;
 using WebService.Providers.Interfaces;
 
 namespace WebService.Providers;
