@@ -4,13 +4,19 @@ using Microsoft.AspNetCore.SignalR;
 using WebService.Hubs.Interfaces;
 using WebService.Models;
 using WebService.Models.Dtos;
+using WebService.Models.Dtos.Messages;
 using WebService.Models.Hubs;
+using WebService.Services;
 using WebService.Services.Interfaces;
 
 namespace WebService.Hubs;
 
 [Authorize]
-public class ChatHub(IChatService chatService, IGroupService groupService, IPresenceService presenceService) : Hub<IChatClient>
+public class ChatHub(
+    IChatService chatService,
+    IGroupService groupService,
+    IPresenceService presenceService,
+    INotificationProducerService notificationProducerService) : Hub<IChatClient>
 {
     private static readonly ConcurrentDictionary<string, HubUser> ConnectedUsers = new();
 
@@ -26,24 +32,6 @@ public class ChatHub(IChatService chatService, IGroupService groupService, IPres
             await Groups.AddToGroupAsync(Context.ConnectionId, group.Id);
 
         await base.OnConnectedAsync();
-    }
-
-    private async Task AddConnectedUser(string userId, string userName)
-    {
-        var user = ConnectedUsers.GetOrAdd(userId, new HubUser
-        {
-            Id = userId,
-            Name = userName,
-            ConnectionIds = []
-        });
-
-        user.ConnectionIds.Add(Context.ConnectionId);
-
-        if (user.ConnectionIds.Count == 1)
-        {
-            var clientsToAlert = await presenceService.GetUsersToNotify(userId);
-            await Clients.Users(clientsToAlert).NotifyUserConnected(userId, userName);
-        }
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
@@ -87,10 +75,10 @@ public class ChatHub(IChatService chatService, IGroupService groupService, IPres
         switch (chatTypeEnum)
         {
             case ChatTypeEnum.Private:
-                await Clients.User(receiverId).ReceiveMessage(senderId, senderName, message);
+                await ReceivePrivateMessage(senderId, receiverId, senderName, message);
                 break;
             case ChatTypeEnum.Group:
-                await Clients.Group(receiverId).ReceiveMessage(senderId, senderName, message);
+                await ReceiveGroupMessage(receiverId, senderId, senderName, message);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(chatTypeEnum), chatTypeEnum, null);
@@ -102,6 +90,67 @@ public class ChatHub(IChatService chatService, IGroupService groupService, IPres
         return Task.FromResult(ConnectedUsers.Values);
     }
 
+    #region Private Methods
+
+    private async Task AddConnectedUser(string userId, string userName)
+    {
+        var user = ConnectedUsers.GetOrAdd(userId, new HubUser
+        {
+            Id = userId,
+            Name = userName,
+            ConnectionIds = []
+        });
+
+        user.ConnectionIds.Add(Context.ConnectionId);
+
+        if (user.ConnectionIds.Count == 1)
+        {
+            var usersToNotify = await presenceService.GetUsersToNotify(userId);
+            await Clients.Users(usersToNotify).NotifyUserConnected(userId, userName);
+        }
+    }
+
+    private async Task ReceivePrivateMessage(string senderId, string receiverId, string senderName, string message)
+    {
+        if (ConnectedUsers.TryGetValue(receiverId, out _))
+        {
+            await Clients.Clients(receiverId).ReceiveMessage(senderId, senderName, message);
+            return;
+        }
+
+        await notificationProducerService.SendMessageNotificationRequestAsync(
+            new CreateMessageDto
+            {
+                SenderId = senderId,
+                ReceiverId = receiverId,
+                Content = message
+            }
+        );
+    }
+
+    private async Task ReceiveGroupMessage(string receiverId, string senderId, string senderName, string message)
+    {
+        var group = await groupService.GetGroupByIdAsync(senderId, receiverId);
+        var groupUsers = group.UserIds;
+
+        foreach (var userId in groupUsers)
+        {
+            if (ConnectedUsers.TryGetValue(userId, out _))
+                await Clients.Clients(userId).ReceiveMessage(senderId, senderName, message);
+            else
+                await notificationProducerService.SendMessageNotificationRequestAsync(
+                    new CreateMessageDto
+                    {
+                        SenderId = senderId,
+                        ReceiverId = userId,
+                        Content = message
+                    }
+                );
+        }
+    }
+
     private string GetUserId() => Context.UserIdentifier!;
     private string GetUserName() => Context.User!.Identity!.Name!;
+
+    #endregion
 }

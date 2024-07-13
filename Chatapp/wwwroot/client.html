@@ -184,11 +184,11 @@
                 addMessageToChat(chat, senderName, message);
             });
 
-            connection.on("AlertUserConnected", (userId, userName) => {
+            connection.on("NotifyUserConnected", (userId, userName) => {
                 addConnectedUser({ id: userId, name: userName });
             });
 
-            connection.on("AlertUserDisconnected", (userId) => {
+            connection.on("NotifyUserDisconnected", (userId) => {
                 removeConnectedUser(userId);
             });
 

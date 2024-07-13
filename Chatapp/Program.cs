@@ -48,12 +48,13 @@ builder.Services.AddScoped<ErrorHandlingMiddleWare>();
 
 #endregion
 
-#region Queue
+#region Kafka Queue
 
-var queueSettingSection = builder.Configuration.GetSection("QueueOptions");
-builder.Services.Configure<QueueOptions>(queueSettingSection);
+var queueSettingSection = builder.Configuration.GetSection("KafkaOptions");
+builder.Services.Configure<KafkaOptions>(queueSettingSection);
 
 builder.Services.AddScoped<INotificationProducerService, NotificationProducerService>();
+builder.Services.AddHostedService<NotificationConsumerService>();
 
 #endregion
 
@@ -146,6 +147,7 @@ builder.Services.AddSwaggerGen(option =>
         option.OperationFilter<AuthResponseOperationFilter>();
     }
 );
+
 builder.Services.AddCors(
     options =>
     {
@@ -157,6 +159,11 @@ builder.Services.AddCors(
                     .AllowAnyHeader();
             });
     });
+
+builder.Services.Configure<HostOptions>(c =>
+{
+    c.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore;
+});
 
 #endregion
 

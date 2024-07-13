@@ -1,9 +1,8 @@
-using WebService.Models.Dtos;
-using WebService.Models.Queues;
+using WebService.Models.Dtos.Messages;
 
 namespace WebService.Services.Interfaces;
 
 public interface INotificationProducerService
 {
-    Task SendMessageNotificationAsync(CreateMessageDto dto);
+    Task SendMessageNotificationRequestAsync(CreateMessageDto dto);
 }

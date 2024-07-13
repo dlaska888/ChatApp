@@ -2,6 +2,7 @@
 using WebService.Exceptions;
 using WebService.Models;
 using WebService.Models.Dtos;
+using WebService.Models.Dtos.Messages;
 using WebService.Models.Entities;
 using WebService.Repositories.Interfaces;
 using WebService.Services.Interfaces;
@@ -27,8 +28,38 @@ public class ChatService(
 
     public async Task<IEnumerable<GetChatDto>> GetAllChatsAsync(string userId)
     {
-        var userObjectId = new ObjectId(userId);
         var allChats = new List<GetChatDto>();
+
+        var privateChats = await GetPrivateChatsAsync(userId);
+        allChats.AddRange(privateChats);
+
+        var groupChats = await GetGroupChatsAsync(userId);
+        allChats.AddRange(groupChats);
+
+        return allChats;
+    }
+
+
+    public async Task<IEnumerable<GetMessageDto>> GetMessagesByChatAsync(string userId, string receiverId,
+        ChatTypeEnum chatTypeEnum, string? earliestMessageId)
+
+    {
+        var userObjectId = new ObjectId(userId);
+        var receiverObjectId = new ObjectId(receiverId);
+        var earliestMessageObjectId = earliestMessageId != null ? new ObjectId(earliestMessageId) : (ObjectId?)null;
+
+        return chatTypeEnum switch
+        {
+            ChatTypeEnum.Private => await GetPrivateMessagesAsync(userObjectId, receiverObjectId,
+                earliestMessageObjectId),
+            ChatTypeEnum.Group => await GetGroupMessagesAsync(userObjectId, receiverObjectId, earliestMessageObjectId),
+            _ => throw new ArgumentOutOfRangeException(nameof(chatTypeEnum), chatTypeEnum, null)
+        };
+    }
+
+    private async Task<IEnumerable<GetChatDto>> GetPrivateChatsAsync(string userId)
+    {
+        var userObjectId = new ObjectId(userId);
 
         var privateChats = await messageRepo.AsQueryable()
             .Where(m => m.SenderId == userObjectId || m.ReceiverId == userObjectId)
@@ -49,42 +80,26 @@ public class ChatService(
             .Where(user => chatNameIds.Contains(user.Id))
             .ToDictionary(user => user.Id, user => user.UserName);
 
-        allChats.AddRange(privateChats.Select(m => new GetChatDto
+        return privateChats.Select(m => new GetChatDto
         {
             Name = userNames[m.ChatNameId]!,
             ReceiverId = m.ChatNameId.ToString(),
             ChatTypeEnum = ChatTypeEnum.Private,
-        }));
+        }).ToList();
+    }
 
+    private async Task<IEnumerable<GetChatDto>> GetGroupChatsAsync(string userId)
+    {
         var groups = await groupService.GetAllGroupsAsync(userId);
 
-        allChats.AddRange(groups.Select(g => new GetChatDto
+        return groups.Select(g => new GetChatDto
         {
             Name = g.Name,
             ReceiverId = g.Id.ToString(),
             ChatTypeEnum = ChatTypeEnum.Group
-        }));
-
-        return allChats;
+        }).ToList();
     }
-
-    public async Task<IEnumerable<GetMessageDto>> GetMessagesByChatAsync(string userId, string receiverId,
-        ChatTypeEnum chatTypeEnum, string? earliestMessageId)
-
-    {
-        var userObjectId = new ObjectId(userId);
-        var receiverObjectId = new ObjectId(receiverId);
-        var earliestMessageObjectId = earliestMessageId != null ? new ObjectId(earliestMessageId) : (ObjectId?)null;
-
-        return chatTypeEnum switch
-        {
-            ChatTypeEnum.Private => await GetPrivateMessagesAsync(userObjectId, receiverObjectId,
-                earliestMessageObjectId),
-            ChatTypeEnum.Group => await GetGroupMessagesAsync(userObjectId, receiverObjectId, earliestMessageObjectId),
-            _ => throw new ArgumentOutOfRangeException(nameof(chatTypeEnum), chatTypeEnum, null)
-        };
-    }
-
+    
     private async Task<IEnumerable<GetMessageDto>> GetPrivateMessagesAsync(ObjectId senderId, ObjectId receiverId,
         ObjectId? earliestMessageId)
     {

@@ -4,6 +4,7 @@ using WebService.Exceptions;
 using WebService.Models;
 using WebService.Models.Dtos;
 using WebService.Models.Dtos.Groups;
+using WebService.Models.Dtos.Messages;
 using WebService.Models.Entities;
 using WebService.Repositories.Interfaces;
 using WebService.Services;

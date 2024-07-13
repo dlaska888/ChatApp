@@ -1,4 +1,4 @@
-﻿namespace WebService.Models.Dtos;
+﻿namespace WebService.Models.Dtos.Messages;
 
 public class CreateMessageDto
 {
