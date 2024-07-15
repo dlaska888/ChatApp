@@ -1,7 +1,7 @@
 ﻿using Moq;
 using MongoDB.Bson;
-using WebService.Enums;
 using WebService.Exceptions;
+using WebService.Models;
 using WebService.Models.Dtos.Groups;
 using WebService.Models.Dtos.Messages;
 using WebService.Models.Entities;
@@ -17,6 +17,7 @@ namespace ChatApp.Tests.Tests
         private readonly Mock<IMongoRepository<PrivateMessage>> _mockPrivateMessageRepo;
         private readonly Mock<IMongoRepository<GroupMessage>> _mockGroupMessageRepo;
         private readonly Mock<IGroupService> _mockGroupService;
+        private readonly Mock<IFriendshipService> _mockFriendshipService;
         private readonly ChatService _chatService;
 
         public ChatServiceTests()
@@ -25,8 +26,14 @@ namespace ChatApp.Tests.Tests
             _mockPrivateMessageRepo = new Mock<IMongoRepository<PrivateMessage>>();
             _mockGroupMessageRepo = new Mock<IMongoRepository<GroupMessage>>();
             _mockGroupService = new Mock<IGroupService>();
-            _chatService = new ChatService(_mockUserRepo.Object, _mockPrivateMessageRepo.Object,
-                _mockGroupMessageRepo.Object, _mockGroupService.Object);
+            _mockFriendshipService = new Mock<IFriendshipService>();
+            _chatService = new ChatService(
+                _mockUserRepo.Object,
+                _mockPrivateMessageRepo.Object,
+                _mockGroupMessageRepo.Object,
+                _mockGroupService.Object,
+                _mockFriendshipService.Object
+            );
         }
 
         [Fact]
@@ -183,7 +190,8 @@ namespace ChatApp.Tests.Tests
             }.AsQueryable();
 
             _mockGroupMessageRepo.Setup(repo => repo.AsQueryable()).Returns(groupMessages);
-            _mockGroupService.Setup(service => service.UserHasAccessToGroup(userId, groupId)).ReturnsAsync(true);
+            _mockGroupService.Setup(service => service.UserHasAccessToGroup(userId, groupId))
+                .ReturnsAsync(true);
 
             // Act
             var result = await _chatService.GetGroupMessagesAsync(userId, groupId, null);
@@ -199,7 +207,8 @@ namespace ChatApp.Tests.Tests
             var userId = ObjectId.GenerateNewId().ToString();
             var groupId = ObjectId.GenerateNewId().ToString();
 
-            _mockGroupService.Setup(service => service.UserHasAccessToGroup(userId, groupId)).ReturnsAsync(false);
+            _mockGroupService.Setup(service => service.UserHasAccessToGroup(userId, groupId))
+                .ReturnsAsync(false);
 
             // Act & Assert
             await Assert.ThrowsAsync<UnauthorizedException>(async () =>

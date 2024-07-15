@@ -30,6 +30,7 @@ builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IGroupService, GroupService>();
 builder.Services.AddScoped<IPresenceService, PresenceService>();
+builder.Services.AddScoped<IFriendshipService, FriendshipService>();
 
 #endregion
 

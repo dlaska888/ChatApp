@@ -1,6 +1,6 @@
 ﻿using MongoDB.Bson;
-using WebService.Enums;
 using WebService.Exceptions;
+using WebService.Models;
 using WebService.Models.Dtos;
 using WebService.Models.Dtos.Messages;
 using WebService.Models.Entities;
@@ -13,7 +13,8 @@ public class ChatService(
     IMongoRepository<ChatUser> userRepo,
     IMongoRepository<PrivateMessage> privateMessageRepo,
     IMongoRepository<GroupMessage> groupMessageRepo,
-    IGroupService groupService) : IChatService
+    IGroupService groupService,
+    IFriendshipService friendshipService) : IChatService
 {
     public async Task CreatePrivateMessageAsync(CreateMessageDto dto)
     {
@@ -29,7 +30,7 @@ public class ChatService(
 
     public async Task CreateGroupMessageAsync(CreateMessageDto dto)
     {
-        var message = new GroupMessage()
+        var message = new GroupMessage
         {
             SenderId = new ObjectId(dto.SenderId),
             GroupId = new ObjectId(dto.ReceiverId),
@@ -45,6 +46,11 @@ public class ChatService(
 
         var privateChats = await GetPrivateChatsAsync(userId);
         allChats.AddRange(privateChats);
+
+        var friendsChats = await GetFriendsChatsAsync(userId);
+        allChats.AddRange(friendsChats);
+
+        allChats = allChats.DistinctBy(c => c.ReceiverId).ToList();
 
         var groupChats = await GetGroupChatsAsync(userId);
         allChats.AddRange(groupChats);
@@ -67,9 +73,9 @@ public class ChatService(
             .Where(m => earliestMessageId == null || m.Id < earliestMessageObjectId)
             .Select(m => new GetMessageDto
             {
-                Id = m.Id.ToString(),
-                SenderId = m.SenderId.ToString(),
-                ReceiverId = m.ReceiverId.ToString(),
+                Id = m.Id.ToString()!,
+                SenderId = m.SenderId.ToString()!,
+                ReceiverId = m.ReceiverId.ToString()!,
                 Content = m.Content,
                 CreatedAt = m.CreatedAt
             })
@@ -92,9 +98,9 @@ public class ChatService(
             .Where(m => earliestMessageId == null || m.Id < earliestMessageObjectId)
             .Select(m => new GetMessageDto
             {
-                Id = m.Id.ToString(),
-                SenderId = m.SenderId.ToString(),
-                ReceiverId = m.GroupId.ToString(),
+                Id = m.Id.ToString()!,
+                SenderId = m.SenderId.ToString()!,
+                ReceiverId = m.GroupId.ToString()!,
                 Content = m.Content,
                 CreatedAt = m.CreatedAt
             })
@@ -130,7 +136,7 @@ public class ChatService(
             .Select(m => new GetChatDto
             {
                 Name = userNames[m.ChatNameId]!,
-                ReceiverId = m.ChatNameId.ToString(),
+                ReceiverId = m.ChatNameId.ToString()!,
                 ChatTypeEnum = ChatTypeEnum.Private
             })
             .ToList();
@@ -145,6 +151,18 @@ public class ChatService(
             Name = g.Name,
             ReceiverId = g.Id.ToString(),
             ChatTypeEnum = ChatTypeEnum.Group
+        }).ToList();
+    }
+
+    // Friends chats are private chats, but there might not be a message yet
+    private async Task<IEnumerable<GetChatDto>> GetFriendsChatsAsync(string userId)
+    {
+        var friends = await friendshipService.GetAcceptedFriendsAsync(userId);
+        return friends.Select(f => new GetChatDto
+        {
+            Name = f.UserName,
+            ReceiverId = f.Id,
+            ChatTypeEnum = ChatTypeEnum.Private
         }).ToList();
     }
 }
