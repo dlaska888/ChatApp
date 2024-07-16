@@ -1,13 +1,13 @@
 services:
-  chatapp:
-    image: chatapp
+  chatappbackend:
+    image: chatappbackend
     depends_on:
       - kafka
       - mongo
       - redis
     build:
       context: .
-      dockerfile: ChatApp/Dockerfile
+      dockerfile: ChatAppBackend.Api/Dockerfile
     ports:
       - '80:80'
       - '443:443'

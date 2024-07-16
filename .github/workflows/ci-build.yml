@@ -28,13 +28,13 @@ jobs:
         run: dotnet test --no-restore --verbosity normal
 
       - name: Build Docker image
-        run: docker build -t chatapp:latest -f ./ChatApp/Dockerfile . 
+        run: docker build -t chatappbackend:latest -f ./ChatAppBackend.Api/Dockerfile . 
 
       - name: Run Docker container
-        run: docker run -d --name chatapp -p 5000:8080 chatapp:latest
+        run: docker run -d --name chatappbackend -p 5000:8080 chatappbackend:latest
       
       - name: Check app health
-        run: curl --retry 10 --retry-connrefused http://localhost:5000
+        run: curl --retry 5 --retry-connrefused http://localhost:5000
 
       - name: Stop and remove Docker container
-        run: docker stop chatapp && docker rm chatapp
+        run: docker stop chatappbackend && docker rm chatappbackend

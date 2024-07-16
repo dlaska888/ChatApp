@@ -9,7 +9,7 @@ using WebService.Repositories.Interfaces;
 using WebService.Services;
 using WebService.Services.Interfaces;
 
-namespace ChatApp.Tests.Tests
+namespace ChatAppBackend.Tests.Tests
 {
     public class ChatServiceTests
     {

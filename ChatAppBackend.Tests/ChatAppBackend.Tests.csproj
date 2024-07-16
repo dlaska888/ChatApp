@@ -23,7 +23,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\ChatApp\ChatApp.csproj" />
+      <ProjectReference Include="..\ChatAppBackend.Api\ChatAppBackend.Api.csproj" />
     </ItemGroup>
 
 </Project>

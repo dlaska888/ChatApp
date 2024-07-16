@@ -1,13 +1,14 @@
 
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatApp", "ChatApp\ChatApp.csproj", "{D99979B1-4A7E-436D-A8AF-682F0822D7E0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatAppBackend.Api", "ChatAppBackend.Api\ChatAppBackend.Api.csproj", "{D99979B1-4A7E-436D-A8AF-682F0822D7E0}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{36DC3413-1EF2-4261-BA4B-A38325C8ACF9}"
 	ProjectSection(SolutionItems) = preProject
 		docker-compose.yml = docker-compose.yml
+		.github\workflows\ci-build.yml = .github\workflows\ci-build.yml
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatApp.Tests", "ChatApp.Tests\ChatApp.Tests.csproj", "{E8685652-92DE-4408-A91E-3C7026A92740}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatAppBackend.Tests", "ChatAppBackend.Tests\ChatAppBackend.Tests.csproj", "{E8685652-92DE-4408-A91E-3C7026A92740}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
