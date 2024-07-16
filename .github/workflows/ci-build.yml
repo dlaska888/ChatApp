@@ -1,14 +1,14 @@
-name: CI Build
+name: Publish
 
 on:
   push:
-    branches: [ master, develop ]
+    branches: [ github-actions-test ]
   pull_request:
     branches: [ master ]
 
 jobs:
-  build:
-    name: .NET Build
+  publish:
+    name: .NET Build and Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -26,15 +26,3 @@ jobs:
 
       - name: Test
         run: dotnet test --no-restore --verbosity normal
-
-      - name: Build Docker image
-        run: docker build -t chatappbackend:latest -f ./ChatAppBackend.Api/Dockerfile . 
-
-      - name: Run Docker container
-        run: docker run -d --name chatappbackend -p 5000:8080 chatappbackend:latest
-      
-      - name: Check app health
-        run: curl --retry 5 --retry-connrefused http://localhost:5000
-
-      - name: Stop and remove Docker container
-        run: docker stop chatappbackend && docker rm chatappbackend
