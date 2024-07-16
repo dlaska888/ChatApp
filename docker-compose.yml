@@ -1,9 +1,13 @@
 services:
-  webservice:
-    image: webservice
+  chatappbackend:
+    image: chatappbackend
+    depends_on:
+      - kafka
+      - mongo
+      - redis
     build:
       context: .
-      dockerfile: WebService/Dockerfile
+      dockerfile: ChatAppBackend.Api/Dockerfile
     ports:
       - '80:80'
       - '443:443'
@@ -15,24 +19,10 @@ services:
     volumes:
       - ~/.aspnet/https:/https:ro
     networks:
-      api:
-  chatservice:
-    image: chatservice
-    build:
-      context: .
-      dockerfile: ChatService/Dockerfile
-  usermappingservice:
-    image: usermappingservice
-    build:
-      context: .
-      dockerfile: UserMappingService/Dockerfile
-  notificationservice:
-    image: notificationservice
-    build:
-      context: .
-      dockerfile: NotificationService/Dockerfile
+      - api-network
+
   mongo:
-    image: mongo:7.0.1-rc0
+    image: mongo:7.0.12
     container_name: mongo
     ports:
       - '27017:27017'
@@ -43,17 +33,50 @@ services:
     volumes:
       - mongodata:/data/db
     networks:
-      api:
+      - api-network
+
+  redis:
+    image: redis:7.2.5-alpine
+    ports:
+      - '6379:6379'
+    networks:
+      - api-network
+  
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.4
+    depends_on:
+      - kafka
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "22181:2181"
+    networks:
+      - kafka-network
+  
+  kafka:
+    image: wurstmeister/kafka:latest
+    ports:
+      - "9092:9092"
+    expose:
+      - "9093"
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:9093,OUTSIDE://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_LISTENERS: INSIDE://0.0.0.0:9093,OUTSIDE://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CREATE_TOPICS: "MessageNotifications:1:1"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - api-network
+      - kafka-network
 
 volumes:
   mongodata:
 
 networks:
-  api:
+  api-network:
+  kafka-network:
 
-
-  presenceservice:
-    image: presenceservice
-    build:
-      context: .
-      dockerfile: PresenceService/Dockerfile
